@@ -1,0 +1,202 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.product-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.product-card {
+    border: 1px solid #ddd;
+    padding: 10px;
+    width: 250px;
+    border-radius: 8px;
+}
+
+.product-card h2 {
+    margin: 0 0 10px 0;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* PERFECT IMAGE DISPLAY SYSTEM */
+/* Handles ANY image resolution without flickering */
+
+/* Base image styles - flexible and responsive */
+img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Image loading states */
+.image-loading {
+    opacity: 0.8;
+    filter: blur(1px);
+}
+
+.image-loaded {
+    opacity: 1;
+    filter: none;
+}
+
+.image-error {
+    opacity: 0.9;
+    filter: grayscale(100%);
+}
+
+/* Product card images - responsive with fixed aspect ratio */
+.card-img-top {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    object-position: center;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    display: block;
+}
+
+/* Admin table images - fixed small size */
+.admin-product-image {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    object-position: center;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    display: block;
+}
+
+/* Product detail images - responsive with max height */
+.product-detail-image {
+    width: 100%;
+    max-height: 500px;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    display: block;
+}
+
+/* Modal images - fixed medium size */
+.modal-product-image {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    object-position: center;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    display: block;
+}
+
+/* Ensure all image containers have fixed dimensions */
+.image-container {
+    position: relative;
+    overflow: hidden;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+/* Loading spinner for images */
+.image-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Prevent any layout shifts */
+.no-layout-shift {
+    contain: layout style paint;
+}
+
+/* Handle empty or missing images */
+img[src=""],
+img:not([src]) {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-size: 14px;
+    text-align: center;
+    min-height: 100px;
+}
+
+/* Smooth loading transitions */
+img {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Responsive image handling */
+@media (max-width: 768px) {
+    .card-img-top {
+        height: 200px;
+    }
+
+    .product-detail-image {
+        max-height: 300px;
+    }
+
+    .admin-product-image {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* Ensure images don't break layout */
+img {
+    contain: layout style paint;
+}

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Your Orders</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <main class="flex-grow-1">
+    <div class="container mt-5">
+        <h2 class="mb-4"><i class="bi bi-bag-check"></i> Your Orders</h2>
+
+        <div th:if="${orders == null || #lists.isEmpty(orders)}" class="alert alert-info">
+            You have no orders yet.
+        </div>
+
+        <div th:each="order : ${orders}" class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="fw-bold">Order #<span th:text="${order.id}"></span></span>
+                    <span class="ms-3">
+                        <span th:switch="${order.status}" class="badge fs-6 px-3 py-2">
+                            <span th:case="PLACED" class="badge bg-primary text-white">
+                                <i class="bi bi-clock"></i> Placed
+                            </span>
+                            <span th:case="CANCELLED" class="badge bg-danger text-white">
+                                <i class="bi bi-x-circle"></i> Cancelled
+                            </span>
+                            <span th:case="DELIVERED" class="badge bg-success text-white">
+                                <i class="bi bi-check-circle"></i> Delivered
+                            </span>
+                            <span th:case="*" class="badge bg-secondary text-white" th:text="${order.status}">Unknown</span>
+                        </span>
+                    </span>
+                </div>
+                <span th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="it : ${order.items}">
+                                <td th:text="${it.productName}"></td>
+                                <td>₹<span th:text="${it.price}"></span></td>
+                                <td th:text="${it.quantity}"></td>
+                                <td>₹<span th:text="${it.price * it.quantity}"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Order Status Information -->
+                <div th:switch="${order.status}" class="mb-3">
+                    <!-- PLACED Status -->
+                    <div th:case="PLACED" class="alert alert-info d-flex align-items-center" role="alert">
+                        <i class="bi bi-clock me-2"></i>
+                        <div class="flex-grow-1">
+                            <strong>Order Status:</strong> 
+                            <span class="badge bg-primary text-white ms-2">
+                                <i class="bi bi-clock"></i> Your order has been placed and is being processed
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- DELIVERED Status -->
+                    <div th:case="DELIVERED" class="alert alert-success d-flex align-items-center" role="alert">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <div class="flex-grow-1">
+                            <strong>Order Status:</strong> 
+                            <span class="badge bg-success text-white ms-2">
+                                <i class="bi bi-check-circle"></i> Your order has been delivered successfully!
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- CANCELLED Status -->
+                    <div th:case="CANCELLED" class="alert alert-danger d-flex align-items-center" role="alert">
+                        <i class="bi bi-x-circle me-2"></i>
+                        <div class="flex-grow-1">
+                            <strong>Order Status:</strong> 
+                            <span class="badge bg-danger text-white ms-2">
+                                <i class="bi bi-x-circle"></i> This order has been cancelled
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <h5 class="mb-0">Total: ₹ <span th:text="${order.totalPrice}"></span></h5>
+                    <div th:if="${order.status.name() == 'PLACED'}">
+                        <button class="btn btn-outline-danger btn-sm cancel-order-btn" 
+                                th:data-order-id="${order.id}">
+                            <i class="bi bi-x-circle"></i> Cancel Order
+                        </button>
+                    </div>
+                    <div th:if="${order.status.name() == 'DELIVERED'}" class="text-success">
+                        <i class="bi bi-check-circle-fill me-1"></i>
+                        <small class="fw-bold">Order Completed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.cancel-order-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const orderId = this.getAttribute('data-order-id');
+                    if (confirm('Are you sure you want to cancel order #' + orderId + '? This action cannot be undone and will restore the stock.')) {
+                        fetch(`/api/orders/${orderId}/cancel`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                location.reload(); // Reload page to show updated status
+                            } else {
+                                alert('Failed to cancel order. Please try again.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while cancelling the order.');
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+    </main>
+
+    <!-- Include Footer Fragment -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>

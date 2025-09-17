@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Users</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        .status-badge {
+            font-size: 0.8em;
+        }
+        .action-buttons {
+            white-space: nowrap;
+        }
+        .table th {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <main class="flex-grow-1">
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>User Management</h3>
+            <a class="btn btn-secondary" th:href="@{/admin}">Back to Dashboard</a>
+        </div>
+
+        <!-- Alert Messages -->
+        <div th:if="${param.status}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:switch="${param.status[0]}">
+                <span th:case="'toggled'">User status updated successfully!</span>
+                <span th:case="'activated'">User activated successfully!</span>
+                <span th:case="'deactivated'">User deactivated successfully!</span>
+            </span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:switch="${param.error[0]}">
+                <span th:case="'self-deactivate'">You cannot deactivate your own account!</span>
+                <span th:case="'status-failed'">Failed to update user status. Please try again.</span>
+                <span th:case="'activate-failed'">Failed to activate user. Please try again.</span>
+                <span th:case="'deactivate-failed'">Failed to deactivate user. Please try again.</span>
+                <span th:case="'self-delete'">You cannot delete your own account!</span>
+                <span th:case="'has-orders'">Cannot delete user with existing orders!</span>
+                <span th:case="'delete-failed'">Failed to delete user. Please try again.</span>
+            </span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- User Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary" th:text="${#lists.size(users)}">0</h5>
+                        <p class="card-text">Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-success" th:text="${#lists.size(users.?[active == true])}">0</h5>
+                        <p class="card-text">Active Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning" th:text="${#lists.size(users.?[active == false])}">0</h5>
+                        <p class="card-text">Inactive Users</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Name</th>
+                        <th>Roles</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="u : ${users}">
+                        <td th:text="${u.id}"></td>
+                        <td th:text="${u.username}"></td>
+                        <td th:text="${u.email}"></td>
+                        <td th:text="${u.firstName + ' ' + u.lastName}"></td>
+                        <td>
+                            <span th:each="role, iterStat : ${u.roles}">
+                                <span th:if="${role.name() == 'ROLE_ADMIN'}" class="badge me-1 bg-danger" th:text="ADMIN"></span>
+                                <span th:if="${role.name() == 'ROLE_USER'}" class="badge me-1 bg-primary" th:text="USER"></span>
+                            </span>
+                        </td>
+                        <td>
+                            <span th:if="${u.active}" class="badge bg-success status-badge">
+                                <i class="bi bi-check-circle"></i> Active
+                            </span>
+                            <span th:unless="${u.active}" class="badge bg-warning status-badge">
+                                <i class="bi bi-x-circle"></i> Inactive
+                            </span>
+                        </td>
+                        <td class="action-buttons">
+                            <!-- Toggle Status Button -->
+                            <form th:if="${u.active}" th:action="@{/admin/users/{id}/deactivate(id=${u.id})}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-warning btn-sm confirm-action" 
+                                        th:data-username="${u.username}"
+                                        th:data-action="deactivate">
+                                    <i class="bi bi-person-x"></i> Deactivate
+                                </button>
+                            </form>
+                            <form th:unless="${u.active}" th:action="@{/admin/users/{id}/activate(id=${u.id})}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="bi bi-person-check"></i> Activate
+                                </button>
+                            </form>
+                            
+                            <!-- Delete Button (only for non-admin users) -->
+                            <form th:if="${!u.roles.contains(T(com.cts.ecommerce.model.Role).ROLE_ADMIN)}"
+                                  th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post" class="d-inline ms-1">
+                                <button type="submit" class="btn btn-danger btn-sm confirm-delete" 
+                                        th:data-username="${u.username}">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript for confirmation dialogs -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle deactivate/activate confirmations
+            document.querySelectorAll('.confirm-action').forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const username = this.getAttribute('data-username');
+                    const action = this.getAttribute('data-action');
+                    const actionText = action === 'deactivate' ? 'deactivate' : 'activate';
+                    
+                    if (confirm('Are you sure you want to ' + actionText + ' user ' + username + '?')) {
+                        this.closest('form').submit();
+                    }
+                });
+            });
+
+            // Handle delete confirmations
+            document.querySelectorAll('.confirm-delete').forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const username = this.getAttribute('data-username');
+                    
+                    if (confirm('Are you sure you want to delete user ' + username + '? This action cannot be undone!')) {
+                        this.closest('form').submit();
+                    }
+                });
+            });
+        });
+    </script>
+    </main>
+
+    <!-- Include Footer Fragment -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>My Cart</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <main class="flex-grow-1">
+    <div class="container mt-5">
+        <h2 class="mb-4">🛒 Your Cart</h2>
+
+        <!-- Check if cart has items -->
+        <div th:if="${cart.items != null and !cart.items.isEmpty()}">
+
+            <table class="table table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Product</th>
+                        <th>Price (₹)</th>
+                        <th>Stock Status</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${cart.items}" th:class="${item.quantity > item.stock} ? 'table-danger' : ''">
+                        <td th:text="${item.productName}"></td>
+                        <td>₹<span th:text="${item.price}"></span></td>
+                        <td>
+                            <span th:if="${item.stock == 0}" class="badge bg-danger">
+                                <i class="bi bi-x-circle"></i> Out of Stock
+                            </span>
+                            <span th:if="${item.stock > 0 and item.stock <= 5 and item.quantity <= item.stock}" class="badge bg-warning">
+                                <i class="bi bi-exclamation-triangle"></i> Only <span th:text="${item.stock}"></span> left
+                            </span>
+                            <span th:if="${item.stock > 5 and item.quantity <= item.stock}" class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> In Stock
+                            </span>
+                            <span th:if="${item.quantity > item.stock}" class="badge bg-danger">
+                                <i class="bi bi-exclamation-triangle"></i> Quantity exceeds stock! (Max: <span th:text="${item.stock}"></span>)
+                            </span>
+                        </td>
+                        <td>
+                            <form th:action="@{/api/cart/decrease/{id}(id=${item.cartItemId})}" method="post"
+                                class="d-inline js-cart-action">
+                                <button class="btn btn-sm btn-warning">-</button>
+                            </form>
+                            <span th:text="${item.quantity}" th:class="${item.quantity > item.stock} ? 'text-danger fw-bold' : ''"></span>
+                            <span th:if="${item.quantity > item.stock}" class="text-danger small"> (Max: <span th:text="${item.stock}"></span>)</span>
+                            <form th:action="@{/api/cart/increase/{id}(id=${item.cartItemId})}" method="post"
+                                class="d-inline js-cart-action">
+                                <button class="btn btn-sm btn-success" th:disabled="${item.quantity >= item.stock}">+</button>
+                            </form>
+                        </td>
+                        <td>₹<span th:text="${item.price * item.quantity}"></span></td>
+                        <td>
+                            <form th:action="@{/api/cart/remove/{id}(id=${item.productId})}" method="post"
+                                class="js-cart-action">
+                                <input type="hidden" name="_method" value="delete" />
+                                <button class="btn btn-sm btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4 class="mt-3">Grand Total: ₹ <span th:text="${cart.totalPrice}"></span></h4>
+
+            <form th:action="@{/api/cart/clear}" method="post" class="js-cart-action">
+                <input type="hidden" name="_method" value="delete" />
+                <button class="btn btn-danger mt-3">Clear Cart</button>
+            </form>
+        </div>
+
+        <!-- Empty cart message -->
+        <div th:if="${cart.items == null or cart.items.isEmpty()}">
+            <div class="alert alert-info">Your cart is empty.</div>
+        </div>
+
+        <!-- Stock Validation Warning -->
+        <div th:if="${cart.items != null and !cart.items.isEmpty()}" class="mt-3">
+            <div th:if="${cart.items.?[stock == 0].size() > 0}" class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Warning:</strong> Some items in your cart are out of stock. Please remove them before placing your order.
+            </div>
+            <div th:if="${cart.items.?[quantity > stock].size() > 0}" class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Stock Issue:</strong> Some items in your cart exceed available stock. Please reduce quantities or remove items to proceed.
+            </div>
+            <div th:if="${cart.items.?[stock > 0 and stock <= 5 and quantity <= stock].size() > 0}" class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Low Stock Alert:</strong> Some items have limited stock available. Order soon to avoid disappointment!
+            </div>
+        </div>
+
+        <div class="mt-4" th:if="${cart.items != null and !cart.items.isEmpty()}">
+            <button class="btn btn-primary btn-lg" id="buyNowBtn"
+                    th:disabled="${cart.items.?[stock == 0].size() > 0 or cart.items.?[quantity > stock].size() > 0}">
+                Buy Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Handle Buy Now button click
+        document.getElementById('buyNowBtn')?.addEventListener('click', function() {
+            if (!this.disabled) {
+                window.location.href = '/payment';
+            }
+        });
+    </script>
+
+    <script>
+        document.querySelectorAll('.js-cart-action').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const url = form.getAttribute('action');
+                const method = (form.querySelector('input[name="_method"]')?.value || form.getAttribute('method') || 'post').toUpperCase();
+                fetch(url, {
+                    method: method === 'DELETE' ? 'DELETE' : 'POST',
+                    credentials: 'include'
+                }).then(function () {
+                    window.location.reload();
+                }).catch(function () {
+                    window.location.reload();
+                });
+            });
+        });
+    </script>
+    </main>
+
+    <!-- Include Footer Fragment -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+
+</html>
